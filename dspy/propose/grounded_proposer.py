@@ -170,7 +170,7 @@ class GenerateModuleInstruction(dspy.Module):
         task_demos = ""
         basic_instruction = get_signature(program.predictors()[pred_i]).instructions
         curr_demos_num = 0
-        
+
         for example in demo_candidates[pred_i][demo_set_i]:
             if "augmented" in example.keys():
                 fields_to_use = get_signature(program.predictors()[pred_i]).fields
@@ -195,7 +195,7 @@ class GenerateModuleInstruction(dspy.Module):
             init_pattern = r"def __init__\(.*?\):([\s\S]*?)(?=^\s*def|\Z)"
             init_content_match = re.search(init_pattern, self.program_code_string)
             init_content = init_content_match.group(0)
-            pattern = r"^(.*dspy\.(ChainOfThought|Predict).*)$"  # TODO: make it so that this extends out to any dspy Module
+            pattern = r"^(.*dspy\.(ChainOfThought|Predict|TypedChainOfThought|TypedPredictor).*)$"  # TODO: make it so that this extends out to any dspy Module
             matches = re.findall(pattern, init_content, re.MULTILINE)
             modules = [match[0].strip() for match in matches]
             module_code = modules[pred_i]
@@ -285,7 +285,7 @@ class GroundedProposer(Proposer):
             self.use_tip = bool(
                 selected_tip,
             )
-            print(f"Selected tip: {selected_tip_key}")        
+            print(f"Selected tip: {selected_tip_key}")
 
         if self.set_history_randomly:
             # Randomly select whether or not we're using instruction history
@@ -293,7 +293,7 @@ class GroundedProposer(Proposer):
             self.use_instruct_history = use_history
             print(f"Use history T/F: {self.use_instruct_history}")
 
-        # Create an instruction for each predictor 
+        # Create an instruction for each predictor
         for pred_i, predictor in enumerate(program.predictors()):
             for demo_set_i in range(len(demo_candidates[0])):
                 if pred_i not in proposed_instructions:
