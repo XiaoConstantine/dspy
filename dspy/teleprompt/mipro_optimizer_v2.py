@@ -57,7 +57,7 @@ Note that this teleprompter takes in the following parameters:
 * init_temperature: The temperature used to generate new prompts. Higher roughly equals more creative. Default=1.0.
 * verbose: Tells the method whether or not to print intermediate steps.
 * track_stats: Tells the method whether or not to track statistics about the optimization process.
-                If True, the method will track a dictionary with a key corresponding to the trial number, 
+                If True, the method will track a dictionary with a key corresponding to the trial number,
                 and a value containing a dict with the following keys:
                     * program: the program being evaluated at a given trial
                     * score: the last average evaluated score for the program
@@ -107,11 +107,11 @@ class MIPROv2(Teleprompter):
         self.total_calls = 0
         self.minibatch_size = minibatch_size
         self.minibatch_full_eval_steps = minibatch_full_eval_steps
-        self.metric_threshold = None
+        self.metric_threshold = metric_threshold
 
         # Check if WANDB_RUN_ID is set in the environment
         self.wandb_run_id = None
-    
+
     def _get_batch_size(
         self,
         minibatch,
@@ -148,7 +148,7 @@ class MIPROv2(Teleprompter):
         estimated_prompt_model_calls = 10 + self.n * len(
                 student.predictors(),
             ) + (0 if not program_aware_proposer else len(student.predictors()) + 1)  # num data summary calls + N * P + (P + 1)
-        
+
         prompt_model_line = ""
         if not program_aware_proposer:
             prompt_model_line = f"""{YELLOW}- Prompt Model: {BLUE}{BOLD}10{ENDC}{YELLOW} data summarizer calls + {BLUE}{BOLD}{self.n}{ENDC}{YELLOW} * {BLUE}{BOLD}{len(student.predictors())}{ENDC}{YELLOW} lm calls in program = {BLUE}{BOLD}{estimated_prompt_model_calls}{ENDC}{YELLOW} prompt model calls{ENDC}"""
@@ -163,20 +163,20 @@ class MIPROv2(Teleprompter):
         else:
             estimated_task_model_calls_wo_module_calls = self.minibatch_size * num_batches + (len(trainset) * (num_batches // self.minibatch_full_eval_steps))  # B * T * P
             task_model_line = f"""{YELLOW}- Task Model: {BLUE}{BOLD}{self.minibatch_size}{ENDC}{YELLOW} examples in minibatch * {BLUE}{BOLD}{num_batches}{ENDC}{YELLOW} batches + {BLUE}{BOLD}{len(trainset)}{ENDC}{YELLOW} examples in train set * {BLUE}{BOLD}{num_batches // self.minibatch_full_eval_steps}{ENDC}{YELLOW} full evals = {BLUE}{BOLD}{estimated_task_model_calls_wo_module_calls}{ENDC}{YELLOW} task model calls{ENDC}"""
-            
+
 
         user_message = textwrap.dedent(f"""\
             {YELLOW}{BOLD}WARNING: Projected Language Model (LM) Calls{ENDC}
 
             Please be advised that based on the parameters you have set, the maximum number of LM calls is projected as follows:
 
-            
+
             {prompt_model_line}
             {task_model_line}
 
             {YELLOW}{BOLD}Estimated Cost Calculation:{ENDC}
 
-            {YELLOW}Total Cost = (Number of calls to task model * (Avg Input Token Length per Call * Task Model Price per Input Token + Avg Output Token Length per Call * Task Model Price per Output Token) 
+            {YELLOW}Total Cost = (Number of calls to task model * (Avg Input Token Length per Call * Task Model Price per Input Token + Avg Output Token Length per Call * Task Model Price per Output Token)
                         + (Number of calls to prompt model * (Avg Input Token Length per Call * Task Prompt Price per Input Token + Avg Output Token Length per Call * Prompt Model Price per Output Token).{ENDC}
 
             For a preliminary estimate of potential costs, we recommend you perform your own calculations based on the task
@@ -218,7 +218,7 @@ class MIPROv2(Teleprompter):
             else:
                 self.program_code_string = None
 
-            # Setup our proposer 
+            # Setup our proposer
             proposer = GroundedProposer(
                 trainset=trainset,
                 prompt_model=self.prompt_model,
@@ -276,7 +276,7 @@ class MIPROv2(Teleprompter):
                     metric=self.metric,
                     teacher_settings=self.teacher_settings,
                     seed=seed,
-                    metric_threshold=metric_threshold,
+                    metric_threshold=self.metric_threshold,
                 )
             except Exception as e:
                 print(f"Error generating fewshot examples: {e}")
@@ -330,7 +330,7 @@ class MIPROv2(Teleprompter):
             ):
                 def objective(trial):
                     nonlocal best_program, best_score, trial_logs, total_eval_calls  # Allow access to the outer variables
-                    
+
                     # Kick off trial
                     logging.info(f"Starting trial num: {trial.number}")
                     trial_logs[trial.number] = {}
@@ -407,7 +407,7 @@ class MIPROv2(Teleprompter):
                     print("...")
 
                     # Log relevant information
-                    print(f"Score {score}")                
+                    print(f"Score {score}")
                     categorical_key = ",".join(map(str, chosen_params))
                     param_score_dict[categorical_key].append(
                         (score, candidate_program),
@@ -436,11 +436,11 @@ class MIPROv2(Teleprompter):
                         best_score = score
                         best_program = candidate_program.deepcopy()
                         best_score_updated = True
-                        
+
 
                     # If we're doing minibatching, check to see if it's time to do a full eval
                     if minibatch and trial.number % self.minibatch_full_eval_steps == 0:
-                        
+
                         # Save old information as the minibatch version
                         trial_logs[trial.number]["mb_score"] = score
                         trial_logs[trial.number]["mb_program_path"] = trial_logs[trial.number]["program_path"]
@@ -460,13 +460,13 @@ class MIPROv2(Teleprompter):
                             program=highest_mean_program, log_dir=self.log_dir, trial_num=trial.number, note="full_eval",
                         )
                         trial_logs[trial.number]["score"] = full_train_score
-                        
+
                         if full_train_score > best_score:
                             print(f"UPDATING BEST SCORE WITH {full_train_score}")
                             best_score = full_train_score
                             best_program = highest_mean_program.deepcopy()
                             best_score_updated = True
-                    
+
                     # If the best score was updated, do a full eval on the dev set
                     if best_score_updated:
                         full_dev_score = evaluate(
