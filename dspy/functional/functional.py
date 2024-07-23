@@ -116,6 +116,27 @@ class TypedPredictor(dspy.Module):
         """Return a string representation of the TypedPredictor object."""
         return f"TypedPredictor({self.signature})"
 
+    def extract_valid_json(self, input_string):
+        """"
+        :param input_string: The input string
+        :return: A tuple containing the extracted JSON object and the remaining part of the string
+        """
+        json_obj = None
+        end_index = -1
+        # Look for the end position of the valid JSON object
+        for i in range(len(input_string)):
+            try:
+                json_obj = json.loads(input_string[:i+1])
+                end_index = i + 1
+            except json.JSONDecodeError:
+                continue
+
+        # If a JSON object was found
+        if json_obj is not None:
+            return json_obj, input_string[end_index:]
+        else:
+            raise ValueError("No valid JSON object found at the beginning of the string.")
+
     def _make_example(self, type_) -> str:
         # Note: DSPy will cache this call so we only pay the first time TypedPredictor is called.
         schema = json.dumps(type_.model_json_schema())
@@ -301,6 +322,10 @@ class TypedPredictor(dspy.Module):
                 for name, field in signature.output_fields.items():
                     try:
                         value = completion[name]
+                        valid_json_object, remaining = self.extract_valid_json(value)
+                        print(f"****** {valid_json_object}")
+                        print(f"****** {remaining}")
+                        value = json.dumps(valid_json_object)
                         parser = field.json_schema_extra.get("parser", lambda x: x)
                         parsed[name] = parser(value)
                     except (pydantic.ValidationError, ValueError) as e:
@@ -370,6 +395,8 @@ class TypedPredictor(dspy.Module):
             "Too many retries trying to get the correct output format. " + "Try simplifying the requirements.",
             errors,
         )
+
+
 
 
 def _func_to_signature(func):
