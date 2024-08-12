@@ -117,7 +117,7 @@ class TypedPredictor(dspy.Module):
         return f"TypedPredictor({self.signature})"
 
     def extract_valid_json(self, input_string):
-        """"
+        """ "
         :param input_string: The input string
         :return: A tuple containing the extracted JSON object and the remaining part of the string
         """
@@ -126,7 +126,7 @@ class TypedPredictor(dspy.Module):
         # Look for the end position of the valid JSON object
         for i in range(len(input_string)):
             try:
-                json_obj = json.loads(input_string[:i+1])
+                json_obj = json.loads(input_string[: i + 1])
                 end_index = i + 1
             except json.JSONDecodeError:
                 continue
@@ -323,8 +323,6 @@ class TypedPredictor(dspy.Module):
                     try:
                         value = completion[name]
                         valid_json_object, remaining = self.extract_valid_json(value)
-                        print(f"****** {valid_json_object}")
-                        print(f"****** {remaining}")
                         value = json.dumps(valid_json_object)
                         parser = field.json_schema_extra.get("parser", lambda x: x)
                         parsed[name] = parser(value)
@@ -395,8 +393,6 @@ class TypedPredictor(dspy.Module):
             "Too many retries trying to get the correct output format. " + "Try simplifying the requirements.",
             errors,
         )
-
-
 
 
 def _func_to_signature(func):
