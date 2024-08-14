@@ -324,14 +324,8 @@ class TypedPredictor(dspy.Module):
                         value = completion[name]
                         valid_json_object, remaining = self.extract_valid_json(value)
                         value = json.dumps(valid_json_object)
-                        print(f"json_schema_extra for {name}: {field.json_schema_extra}")
                         parser = field.json_schema_extra.get("parser", lambda x: x)
-                        print(f"Parser for {name}: {parser}")
-                        print(f"Value for {name}: {value}")
                         parsed[name] = parser(value)
-                        print(f"Parsed result for {name}: {parsed[name]}")
-
-
                     except (pydantic.ValidationError, ValueError) as e:
                         errors[name] = self._format_error(
                             e,
