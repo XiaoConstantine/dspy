@@ -63,7 +63,7 @@ class Predict(Module, Parameter):
             prefix = state["signature_prefix"]
             *_, last_key = self.signature.fields.keys()
             self.signature = self.signature.with_updated_fields(last_key, prefix=prefix)
-        
+
         # Some special stuff for CoT.
         if "extended_signature_instructions" in state:
             instructions = state["extended_signature_instructions"]
@@ -113,7 +113,8 @@ class Predict(Module, Parameter):
         if dsp.settings.experimental:
             completions = new_generate(lm, signature, dsp.Example(demos=demos, **kwargs), **config)
         else:
-            completions = old_generate(demos, signature, kwargs, config, self.lm, self.stage)
+            # BUGfix: self.lm is None if user set via settings
+            completions = old_generate(demos, signature, kwargs, config, lm, self.stage)
 
         pred = Prediction.from_completions(completions, signature=signature)
 
@@ -190,7 +191,7 @@ def new_generate(lm, signature, example, max_depth=6, **kwargs):
 
         assert max_depth > 0
         return new_generate(lm, signature, completion, max_depth=max_depth-1, **new_kwargs)
-    
+
     # Keep only output fields.
     completions = [{k: v for k, v in c.items() if k in signature.output_fields} for c in completions]
 
