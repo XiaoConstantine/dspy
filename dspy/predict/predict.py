@@ -114,7 +114,7 @@ class Predict(Module, Parameter):
             completions = new_generate(lm, signature, dsp.Example(demos=demos, **kwargs), **config)
         else:
             # BUGfix: self.lm is None if user set via settings
-            completions = old_generate(demos, signature, kwargs, config, lm, self.stage)
+            completions = old_generate(demos, signature, kwargs, config, self.lm, self.stage)
 
         pred = Prediction.from_completions(completions, signature=signature)
 
